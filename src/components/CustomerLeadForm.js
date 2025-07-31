@@ -19,6 +19,7 @@ const CustomerLeadForm = () => {
     // Validation logic
     if (name === 'contactNumber' && !/^\d{0,10}$/.test(value)) return;
     if (name === 'name' && !/^[a-zA-Z\s]*$/.test(value)) return;
+    if (name === 'vehicleNumber' && !/^[A-Z0-9]*$/.test(value)) return;
 
     setFormData((prev) => ({
       ...prev,
@@ -92,47 +93,55 @@ const CustomerLeadForm = () => {
 
 const styles = {
   container: {
-    padding: '16px',
-    maxWidth: '480px',
-    margin: 'auto',
-    fontFamily: 'Arial, sans-serif',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+    padding: '20px',
+    maxWidth: '400px',
+    margin: '20px auto',
+    fontFamily: 'system-ui, sans-serif',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
   heading: {
     textAlign: 'center',
-    marginBottom: '16px'
+    marginBottom: '24px',
+    color: '#333',
+    fontSize: '22px',
+    fontWeight: '600',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '16px',
   },
   fieldGroup: {
-    marginBottom: '12px',
+    display: 'flex',
+    flexDirection: 'column',
   },
   label: {
-    fontWeight: 'bold',
-    marginBottom: '4px',
-    display: 'block',
-    fontSize: '14px'
+    marginBottom: '6px',
+    fontSize: '14px',
+    color: '#555',
   },
   input: {
-    width: '100%',
-    padding: '8px',
+    padding: '10px 12px',
     fontSize: '14px',
-    borderRadius: '4px',
-    border: '1px solid #ccc'
+    border: '1px solid #ccc',
+    borderRadius: '8px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
   },
   button: {
-    padding: '10px',
+    padding: '12px',
     fontSize: '16px',
+    fontWeight: '600',
     backgroundColor: '#007bff',
-    color: '#fff',
+    color: '#ffffff',
     border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.3s',
   }
 };
+
 
 export default CustomerLeadForm;
