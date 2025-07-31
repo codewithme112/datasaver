@@ -44,7 +44,7 @@ const CustomerLeadForm = () => {
     }
 
     // Submit to Google Sheets
-    await fetch('https://script.google.com/macros/s/AKfycbywUbOa9WM3QoEIT0FIdPgwzOufX3i56zdI2XxQ8HygnoPno2OVmEpr9iFFxVLSjy3k/exec', {
+    await fetch('https://script.google.com/macros/s/AKfycbwk77PbKKdJsk3SDyQ728PDj8V_EwH3kq9NYRDqUlr6Fxyl7EbU63ALplu5CJb_aGEA/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'no-cors',
