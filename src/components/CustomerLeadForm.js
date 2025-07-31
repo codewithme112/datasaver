@@ -19,11 +19,13 @@ const CustomerLeadForm = () => {
     // Validation logic
     if (name === 'contactNumber' && !/^\d{0,10}$/.test(value)) return;
     if (name === 'name' && !/^[a-zA-Z\s]*$/.test(value)) return;
-    if (name === 'vehicleNumber' && !/^[A-Z0-9]*$/.test(value)) return;
+    if (name === 'vehicleNumber' && !/^[A-Z0-9]*$/i.test(value)) return;
+    if (name === 'tokenNumber' && !/^\d{0,5}$/.test(value)) return;
+    if (name === 'totalVehicle' && !/^\d{0,7}$/.test(value)) return;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: name === 'vehicleNumber' ? value.toUpperCase() : value
     }));
   };
 
@@ -65,14 +67,27 @@ const CustomerLeadForm = () => {
     });
   };
 
+  // Hindi translations for form labels
+  const hindiLabels = {
+    tokenNumber: 'टोकन नंबर',
+    name: 'नाम',
+    vehicleNumber: 'वाहन नंबर',
+    contactNumber: 'संपर्क नंबर',
+    companyName: 'कंपनी का नाम',
+    totalVehicle: 'कुल वाहन',
+    ownerManager: 'मालिक/प्रबंधक',
+    officeLocation: 'कार्यालय स्थान',
+    upcomingWork: 'आगामी कार्य'
+  };
+
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>Customer Lead Form</h2>
+      <h2 style={styles.heading}>ग्राहक लीड फॉर्म</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
         {Object.entries(formData).map(([key, value]) => (
           <div key={key} style={styles.fieldGroup}>
             <label style={styles.label}>
-              {key.replace(/([A-Z])/g, ' $1')}:
+              {hindiLabels[key]}:
             </label>
             <input
               type="text"
@@ -81,11 +96,11 @@ const CustomerLeadForm = () => {
               onChange={handleChange}
               required
               style={styles.input}
-              placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1')}`}
+              placeholder={`${hindiLabels[key]} दर्ज करें`}
             />
           </div>
         ))}
-        <button type="submit" style={styles.button}>Submit</button>
+        <button type="submit" style={styles.button}>जमा करें</button>
       </form>
     </div>
   );
