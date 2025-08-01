@@ -281,12 +281,13 @@ const styles = {
   },
   label: {
     marginBottom: '6px',
-    fontSize: '14px',
+    fontSize: '15px',
     color: '#555',
+    fontWeight: 'bold', // <-- Add this line to make label text bold
   },
   input: {
     padding: '10px 12px',
-    fontSize: '14px',
+    fontSize: '15px',
     border: '1px solid #ccc',
     borderRadius: '8px',
     outline: 'none',
