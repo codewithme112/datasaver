@@ -50,18 +50,18 @@ const todayEntries = data.filter(entry => {
 
   const formatTimestamp = (timestamp) => {
   if (!timestamp) return '';
-  const [datePart, timePart] = timestamp.split(' '); // e.g., "01-08-2025", "14:32:05"
-  const [day, month, year] = datePart.split('-');    // "01", "08", "2025"
-  const isoString = `${year}-${month}-${day}T${timePart}`;
-  const date = new Date(isoString);
+  const date = new Date(timestamp); // use as is
 
   return date.toLocaleString('hi-IN', {
     hour: '2-digit',
     minute: '2-digit',
-    day: 'numeric',
+    day: '2-digit',
     month: 'short',
+    year: 'numeric',
+    hour12: true
   });
 };
+
 
 
 
