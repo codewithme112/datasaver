@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const CustomerLeadForm = () => {
+const CustomerLeadForm = ({ onShowEntries }) => {
   const [formData, setFormData] = useState({
     tokenNumber: '',
     name: '',
@@ -12,6 +12,72 @@ const CustomerLeadForm = () => {
     officeLocation: '',
     upcomingWork: ''
   });
+
+  const [stats, setStats] = useState({
+    totalEntries: 0,
+    todayEntries: 0,
+    loading: true,
+    error: null
+  });
+
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1oJ_G1yWeeo4cAEV5vsyBvP1pwoNQQbIXcxbYci4wlXBbYIhxQP_h3-UQnAyLgD8/exec';
+
+
+
+
+
+
+  // Fetch data function
+const fetchData = async () => {
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const data = await response.json();
+
+    const now = new Date();
+
+
+
+ const todayISO = now.toISOString().split('T')[0]; // "2025-08-01"
+
+
+    console.log("Today is:", todayISO);
+
+    console.log("Checking timestamps from sheet:");
+    data.slice(0, 10).forEach(entry => {
+      console.log("⏱", entry.timestamp);
+    });
+
+    const todayEntries = data.filter(entry => {
+  const entryDate = entry.timestamp?.split('T')[0]; // "2025-08-01"
+  const isToday = entryDate === todayISO;
+  return isToday;
+}).length;
+
+
+
+
+
+
+    setStats({
+      totalEntries: data.length,
+      todayEntries,
+      loading: false,
+      error: null
+    });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    setStats(prev => ({ ...prev, loading: false, error: 'Failed to load data' }));
+  }
+};
+
+
+
+
+
+  // Fetch data on component mount and after form submission
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,26 +100,26 @@ const CustomerLeadForm = () => {
 
     // Basic checks
     if (formData.contactNumber.length !== 10) {
-      alert("Contact number must be exactly 10 digits.");
+      alert("संपर्क नंबर 10 अंकों का होना चाहिए।");
       return;
     }
 
     if (formData.name.trim() === '') {
-      alert("Name is required and should contain only letters.");
+      alert("नाम आवश्यक है।");
       return;
     }
 
     // Submit to Google Sheets
-    await fetch('https://script.google.com/macros/s/AKfycbwk77PbKKdJsk3SDyQ728PDj8V_EwH3kq9NYRDqUlr6Fxyl7EbU63ALplu5CJb_aGEA/exec', {
+    await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'no-cors',
       body: JSON.stringify(formData),
     });
 
-    alert('Data submitted successfully!');
+    alert('डेटा सफलतापूर्वक सबमिट किया गया!');
 
-    // Reset form
+    // Reset form and refresh data
     setFormData({
       tokenNumber: '',
       name: '',
@@ -65,9 +131,12 @@ const CustomerLeadForm = () => {
       officeLocation: '',
       upcomingWork: ''
     });
+    
+    // Refresh data after submission
+    setTimeout(() => fetchData(), 1000);
   };
 
-  // Hindi translations for form labels
+  // Hindi translations
   const hindiLabels = {
     tokenNumber: 'टोकन नंबर',
     name: 'नाम',
@@ -82,7 +151,36 @@ const CustomerLeadForm = () => {
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>ग्राहक लीड फॉर्म</h2>
+      <h2 style={styles.heading}>ग्राहक लीड फॉर्स</h2>
+      
+      {/* Statistics Display */}
+      <div style={styles.statsContainer}>
+        {stats.loading ? (
+          <div style={styles.loading}>डेटा लोड हो रहा है...</div>
+        ) : stats.error ? (
+          <div style={styles.error}>{stats.error}</div>
+        ) : (
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>{stats.totalEntries}</div>
+              <div style={styles.statLabel}>कुल एंट्रीज</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>{stats.todayEntries}</div>
+              <div style={styles.statLabel}>आज की एंट्रीज</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Button */}
+      <button 
+        onClick={onShowEntries} 
+        style={styles.navButton}
+      >
+        आज की एंट्रीज देखें
+      </button>
+
       <form onSubmit={handleSubmit} style={styles.form}>
         {Object.entries(formData).map(([key, value]) => (
           <div key={key} style={styles.fieldGroup}>
@@ -109,7 +207,7 @@ const CustomerLeadForm = () => {
 const styles = {
   container: {
     padding: '20px',
-    maxWidth: '400px',
+    maxWidth: '500px',
     margin: '20px auto',
     fontFamily: 'system-ui, sans-serif',
     backgroundColor: '#ffffff',
@@ -120,8 +218,57 @@ const styles = {
     textAlign: 'center',
     marginBottom: '24px',
     color: '#333',
-    fontSize: '22px',
+    fontSize: '24px',
     fontWeight: '600',
+  },
+  statsContainer: {
+    marginBottom: '20px',
+  },
+  statsGrid: {
+    display: 'flex',
+    justifyContent: 'space-around',
+    gap: '20px',
+    marginBottom: '20px',
+  },
+  statCard: {
+    backgroundColor: '#f8f9fa',
+    padding: '15px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    flex: 1,
+    border: '1px solid #dee2e6',
+  },
+  statNumber: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#007bff',
+  },
+  statLabel: {
+    fontSize: '14px',
+    color: '#6c757d',
+    marginTop: '5px',
+  },
+  loading: {
+    textAlign: 'center',
+    color: '#6c757d',
+    padding: '20px',
+  },
+  error: {
+    textAlign: 'center',
+    color: '#dc3545',
+    padding: '20px',
+  },
+  navButton: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '16px',
+    fontWeight: '600',
+    backgroundColor: '#28a745',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    marginBottom: '20px',
   },
   form: {
     display: 'flex',
@@ -157,6 +304,5 @@ const styles = {
     transition: 'background-color 0.3s',
   }
 };
-
 
 export default CustomerLeadForm;
