@@ -11,61 +11,60 @@ const TodayEntries = ({ onBack }) => {
     fetchTodayEntries();
   }, []);
 
+  const fetchTodayEntries = async () => {
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const data = await response.json();
 
+      const now = new Date();
+      const todayISO = now.toISOString().split('T')[0]; 
 
+      const todayEntries = data.filter(entry => {
+        const entryDate = entry.timestamp?.split('T')[0];
+        return entryDate === todayISO;
+      });
 
-const fetchTodayEntries = async () => {
-  try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
-    const data = await response.json();
-
-    const now = new Date();
-
-
-
-    const todayISO = now.toISOString().split('T')[0]; // "2025-08-01"
-
-const todayEntries = data.filter(entry => {
-  const entryDate = entry.timestamp?.split('T')[0]; // also "2025-08-01"
-  const isToday = entryDate === todayISO;
-  if (!isToday) console.log("Skipping entry:", entry.timestamp);
-  return isToday;
-});
-
-
-
-
-    console.log("Today entries found:", todayEntries.length);
-
-    setEntries(todayEntries);
-    setLoading(false);
-  } catch (error) {
-    console.error("Error fetching today's entries:", error);
-    setError('Failed to load today\'s entries');
-    setLoading(false);
-  }
-};
-
-
+      setEntries(todayEntries);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching today's entries:", error);
+      setError('Failed to load today\'s entries');
+      setLoading(false);
+    }
+  };
 
   const formatTimestamp = (timestamp) => {
-  if (!timestamp) return '';
-  const date = new Date(timestamp); // use as is
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
 
-  return date.toLocaleString('hi-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour12: true
-  });
+    return date.toLocaleString('hi-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour12: true
+    });
+  };
+
+  const sendWhatsApp = (number) => {
+  if (!number) return;
+
+  const phone = String(number).trim();
+
+  // अगर नंबर 0 से शुरू हो रहा है, तो +91 लगाकर WhatsApp format कर दो
+  let finalNumber = phone;
+  if (phone.startsWith("0")) {
+    finalNumber = "+91" + phone.substring(1);
+  } else if (!phone.startsWith("+91")) {
+    finalNumber = "+91" + phone; 
+  }
+
+  const message = "Welcome to Sai Autotech!";
+  const url = `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`;
+
+  window.open(url, "_blank");
 };
-
-
-
-
-
 
 
   return (
@@ -116,6 +115,14 @@ const todayEntries = data.filter(entry => {
                   <span style={styles.value}>{entry.contactNumber}</span>
                 </div>
               </div>
+
+              {/* ✅ नया WhatsApp बटन */}
+              <button 
+                style={styles.whatsappButton}
+                onClick={() => sendWhatsApp(entry.contactNumber)}
+              >
+                WhatsApp भेजें
+              </button>
             </div>
           ))}
         </div>
@@ -216,6 +223,17 @@ const styles = {
   value: {
     color: '#212529',
     fontSize: '14px',
+  },
+  whatsappButton: {
+    marginTop: '12px',
+    padding: '10px 15px',
+    backgroundColor: '#25D366',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
   },
 };
 

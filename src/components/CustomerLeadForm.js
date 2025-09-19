@@ -151,7 +151,7 @@ const fetchData = async () => {
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>ग्राहक लीड फॉर्स</h2>
+      <h2 style={styles.heading}>ग्राहक लीड फॉर्म</h2>
       
       {/* Statistics Display */}
       <div style={styles.statsContainer}>
