@@ -47,22 +47,26 @@ const TodayEntries = ({ onBack }) => {
     });
   };
 
-  const sendWhatsApp = (number) => {
+
+
+
+ const sendWhatsApp = (number, vehicleNumber) => {
   if (!number) return;
 
   const phone = String(number).trim();
 
-  // अगर नंबर 0 से शुरू हो रहा है, तो +91 लगाकर WhatsApp format कर दो
   let finalNumber = phone;
   if (phone.startsWith("0")) {
     finalNumber = "+91" + phone.substring(1);
   } else if (!phone.startsWith("+91")) {
-    finalNumber = "+91" + phone; 
+    finalNumber = "+91" + phone;
   }
 
-  const message = "Welcome to Sai Autotech!";
-  const url = `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`;
+  // ✅ Dynamic message with vehicle number
+  const message = `आपके वाहन ${vehicleNumber} के लिए Sai Autotech - TATA Authorised Service Station | Commercial Vehicles में फ्री जनरल चेकअप उपलब्ध है।\n\nUREA भरवाने पर पॉइंट्स मिलेंगे और निप्पल ग्रीसिंग ₹150 में कराई जा सकती है।\n\nआसान लोकेशन के लिए देखें: https://maps.app.goo.gl/Ru4zf19JUpknN2yr5\n\nसमय निकालकर लाभ अवश्य उठाएं।`;
 
+
+  const url = `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`;
   window.open(url, "_blank");
 };
 
@@ -119,7 +123,7 @@ const TodayEntries = ({ onBack }) => {
               {/* ✅ नया WhatsApp बटन */}
               <button 
                 style={styles.whatsappButton}
-                onClick={() => sendWhatsApp(entry.contactNumber)}
+                onClick={() => sendWhatsApp(entry.contactNumber, entry.vehicleNumber)}
               >
                 WhatsApp भेजें
               </button>
