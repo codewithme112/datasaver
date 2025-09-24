@@ -10,6 +10,8 @@ const TodayEntries = ({ onBack }) => {
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1oJ_G1yWeeo4cAEV5vsyBvP1pwoNQQbIXcxbYci4wlXBbYIhxQP_h3-UQnAyLgD8/exec';
 
   useEffect(() => {
+    const todayISO = new Date().toISOString().split('T')[0];
+    setSelectedDate(todayISO);   // ✅ डिफ़ॉल्ट आज की तारीख
     fetchTodayEntries();
   }, []);
 
@@ -61,14 +63,20 @@ const TodayEntries = ({ onBack }) => {
   // 🔹 Filtered Entries (Date + Search)
   const filteredEntries = entries.filter(entry => {
     const entryDate = entry.timestamp?.split('T')[0];
-    const matchesDate = selectedDate ? entryDate === selectedDate : true;
+
+    // ✅ अगर search active है → date ignore होगा
+    const matchesDate = searchTerm 
+      ? true 
+      : (selectedDate ? entryDate === selectedDate : true);
+
     const matchesName = entry.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
     return matchesDate && matchesName;
   });
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>आज की एंट्रीज</h2>
+      <h2 style={styles.heading}>एंट्रीज</h2>
       
       <button 
         onClick={onBack} 
