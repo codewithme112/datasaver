@@ -15,13 +15,10 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
   const parseSheetDate = (ts) => {
     if (!ts) return null;
     try {
-      // ✅ If ISO string (2025-09-29T16:23:05.000Z)
       if (ts.includes("T") && ts.includes("Z")) {
         const dateObj = new Date(ts);
         return isNaN(dateObj.getTime()) ? null : dateObj;
       }
-
-      // ✅ Else assume DD-MM-YYYY HH:mm:ss
       const [datePart, timePart] = ts.split(" ");
       const [dd, mm, yyyy] = datePart.split("-");
       const [hh = 0, min = 0, ss = 0] = (timePart || "0:0:0").split(":");
@@ -43,6 +40,24 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
       year: "numeric",
       hour12: true,
     });
+  };
+
+  // ✅ WhatsApp Function (Leads Only)
+  const sendWhatsApp = (number, vehicleNumber) => {
+    if (!number) return;
+
+    const phone = String(number).trim();
+    let finalNumber = phone;
+    if (phone.startsWith("0")) {
+      finalNumber = "+91" + phone.substring(1);
+    } else if (!phone.startsWith("+91")) {
+      finalNumber = "+91" + phone;
+    }
+
+    const message = `आपके वाहन ${vehicleNumber} के लिए Sai Autotech - TATA Authorised Service Station | Commercial Vehicles में फ्री जनरल चेकअप उपलब्ध है।\n\nUREA भरवाने पर पॉइंट्स मिलेंगे और निप्पल ग्रीसिंग ₹150 में कराई जा सकती है।\n\nआसान लोकेशन के लिए देखें: https://maps.app.goo.gl/Ru4zf19JUpknN2yr5\n\nसमय निकालकर लाभ अवश्य उठाएं।`;
+
+    const url = `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
   };
 
   // ✅ Filtered Entries (Date + Search)
@@ -179,6 +194,14 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
                     <span style={styles.label}>संपर्क नंबर:</span>
                     <span style={styles.value}>{entry.contactNumber}</span>
                   </div>
+
+                  {/* ✅ WhatsApp Button for Leads */}
+                  <button
+                    style={styles.whatsappButton}
+                    onClick={() => sendWhatsApp(entry.contactNumber, entry.vehicleNumber)}
+                  >
+                    WhatsApp भेजें
+                  </button>
                 </>
               ) : (
                 <>
@@ -284,6 +307,17 @@ const styles = {
   detailRow: { display: "flex", justifyContent: "space-between" },
   label: { fontWeight: "600" },
   value: { color: "#212529" },
+  whatsappButton: {
+    marginTop: "12px",
+    padding: "10px 15px",
+    backgroundColor: "#25D366",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "600",
+  },
   empty: { textAlign: "center", color: "#6c757d", padding: "20px" },
   revenueBox: {
     marginTop: "20px",
