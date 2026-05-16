@@ -60,45 +60,90 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
   const handleTabChange = (tab) => {
     setViewType(tab);
     resetFilters();
+    // Booking tab: no default date filter so all bookings show
+    if (tab === "booking") setDateFrom("");
   };
 
   // ── Date parser ──
   const parseSheetDate = (ts) => {
     if (!ts) return null;
     try {
-      if (String(ts).includes("T") && String(ts).includes("Z")) {
-        const d = new Date(ts);
+      const s = String(ts);
+      if (s.includes("T") && s.includes("Z")) {
+        const d = new Date(s);
         return isNaN(d.getTime()) ? null : d;
       }
-      const [datePart, timePart] = String(ts).split(" ");
+      // YYYY-MM-DD (from date input)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [yyyy, mm, dd] = s.split("-");
+        const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      // DD-MM-YYYY HH:mm:ss (from Google Sheets)
+      const [datePart, timePart] = s.split(" ");
       const [dd, mm, yyyy] = datePart.split("-");
       const [hh = 0, min = 0, ss = 0] = (timePart || "0:0:0").split(":");
-      const d = new Date(yyyy, mm - 1, dd, hh, min, ss);
+      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss));
       return isNaN(d.getTime()) ? null : d;
     } catch { return null; }
   };
 
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
   const formatTimestamp = (ts) => {
-    const date = parseSheetDate(ts);
-    if (!date) return "";
-    return date.toLocaleString("hi-IN", {
-      hour: "2-digit", minute: "2-digit",
-      day: "2-digit", month: "short", year: "numeric", hour12: true,
-    });
-  };
-
-  const formatDisplayDate = (ts) => {
     const d = parseSheetDate(ts);
-    if (!d) return String(ts || "—").split("T")[0];
-    return d.toLocaleString("hi-IN", { day: "2-digit", month: "short", year: "numeric" });
+    if (!d) return "—";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mon = MONTHS[d.getMonth()];
+    const yyyy = d.getFullYear();
+    let h = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${dd} ${mon} ${yyyy}, ${String(h).padStart(2,"0")}:${min} ${ampm}`;
   };
 
-  const formatDisplayTime = (ts) => {
-    if (!ts) return "—";
-    if (!String(ts).includes("T")) return ts;
-    const d = new Date(ts);
-    if (isNaN(d.getTime())) return ts;
-    return d.toLocaleString("hi-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  // Handles YYYY-MM-DD, DD-MM-YYYY, ISO timestamp
+  const normalizeDateStr = (val) => {
+    if (!val) return "";
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    if (s.includes("T")) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getUTCFullYear();
+        const mm   = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const dd   = String(d.getUTCDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
+      const [dd, mm, yyyy] = s.split("-");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return s;
+  };
+
+  const formatDisplayDate = (val) => {
+    const iso = normalizeDateStr(val);
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
+    const [yyyy, mm, dd] = iso.split("-");
+    return `${dd} ${MONTHS[Number(mm) - 1]} ${yyyy}`;
+  };
+
+  // Handles text "09:00 AM" and Google Sheets 1899 time ISO
+  const formatDisplayTime = (val) => {
+    if (!val) return "—";
+    const s = String(val).trim();
+    if (!s.includes("T")) return s;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    const useUTC = s.startsWith("1899") || s.startsWith("1900");
+    let h   = useUTC ? d.getUTCHours()   : d.getHours();
+    const min = String(useUTC ? d.getUTCMinutes() : d.getMinutes()).padStart(2, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${String(h).padStart(2,"0")}:${min} ${ampm}`;
   };
 
   const sendWhatsApp = (number, vehicleNumber) => {
@@ -183,20 +228,16 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
     return list;
   }, [allWorks, dateFrom, searchTerm, workType, workMinBill, workMaxBill, workSort]);
 
-  // ── Filtered Bookings ──
+  // ── Filtered Bookings (by creation timestamp — same as Lead/Work) ──
   const filteredBookings = useMemo(() => {
     let list = [...allBookings];
 
-    if (bookingStatus === "today") {
-      list = list.filter(b => (b.preferredDate || b["Preferred Date"] || "") === todayISO);
-    } else if (bookingStatus === "upcoming") {
-      list = list.filter(b => (b.preferredDate || b["Preferred Date"] || "") > todayISO);
-    } else if (bookingStatus === "past") {
-      list = list.filter(b => (b.preferredDate || b["Preferred Date"] || "") < todayISO);
-    } else if (dateFrom) {
-      list = list.filter(b => (b.preferredDate || b["Preferred Date"] || "") === dateFrom);
+    if (dateFrom) {
+      list = list.filter(b => {
+        const d = parseSheetDate(b.timestamp || b.Timestamp);
+        return d ? d.toISOString().split("T")[0] === dateFrom : false;
+      });
     }
-
     if (searchTerm) {
       const s = searchTerm.toLowerCase();
       list = list.filter(b =>
@@ -211,12 +252,12 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
     }
 
     list.sort((a, b) => {
-      const da = (a.preferredDate || "") + (a.preferredTime || "");
-      const db = (b.preferredDate || "") + (b.preferredTime || "");
-      return bookingSort === "asc" ? da.localeCompare(db) : db.localeCompare(da);
+      const ta = parseSheetDate(a.timestamp || a.Timestamp)?.getTime() || 0;
+      const tb = parseSheetDate(b.timestamp || b.Timestamp)?.getTime() || 0;
+      return bookingSort === "asc" ? ta - tb : tb - ta;
     });
     return list;
-  }, [allBookings, dateFrom, searchTerm, bookingService, bookingStatus, bookingSort, todayISO]);
+  }, [allBookings, dateFrom, searchTerm, bookingService, bookingSort]);
 
   const filteredEntries = viewType === "lead" ? filteredLeads
     : viewType === "work" ? filteredWorks
@@ -245,8 +286,7 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
     viewType === "work" && workMaxBill,
     viewType === "work" && workSort !== "newest",
     viewType === "booking" && bookingService,
-    viewType === "booking" && bookingStatus !== "all",
-    viewType === "booking" && bookingSort !== "asc",
+    viewType === "booking" && bookingSort !== "desc",
   ].filter(Boolean).length;
 
   // ── Booking status badge ──
@@ -402,42 +442,29 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
           </>
         )}
 
-        {/* ── BOOKING FILTERS (5 features) ── */}
+        {/* ── BOOKING FILTERS ── */}
         {viewType === "booking" && (
           <>
             <div className="fp-label-bar">
-              <span>📅 Booking Filters — स्थिति, सेवा, तारीख से खोजें</span>
+              <span>📅 आज आपने कितनी Bookings दर्ज कीं — entry date से देखें</span>
             </div>
             <div className="filter-grid">
-              {/* 1. Status */}
-              <div className="filter-field filter-field-full">
-                <label className="filter-label">📊 Booking स्थिति (Status)</label>
-                <div className="sort-btn-group">
-                  <button className={`sort-btn ${bookingStatus === "all" ? "active" : ""}`} onClick={() => setBookingStatus("all")}>📋 सभी</button>
-                  <button className={`sort-btn ${bookingStatus === "today" ? "active" : ""}`} onClick={() => setBookingStatus("today")}>🌟 आज</button>
-                  <button className={`sort-btn ${bookingStatus === "upcoming" ? "active" : ""}`} onClick={() => setBookingStatus("upcoming")}>⏳ Upcoming</button>
-                  <button className={`sort-btn ${bookingStatus === "past" ? "active" : ""}`} onClick={() => setBookingStatus("past")}>📁 पुरानी</button>
-                </div>
+              {/* 1. Entry Date */}
+              <div className="filter-field">
+                <label className="filter-label">📅 Entry की तारीख</label>
+                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="field-input filter-input" />
+                {dateFrom && <button className="filter-chip-clear" onClick={() => setDateFrom("")}>✕ Clear</button>}
               </div>
 
-              {/* 2. Date (only when "all") */}
-              {bookingStatus === "all" && (
-                <div className="filter-field filter-field-full">
-                  <label className="filter-label">📅 Appointment तारीख</label>
-                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="field-input filter-input" />
-                  {dateFrom && <button className="filter-chip-clear" onClick={() => setDateFrom("")}>✕ Clear</button>}
-                </div>
-              )}
-
-              {/* 3. Name / Vehicle Search */}
+              {/* 2. Search */}
               <div className="filter-field">
                 <label className="filter-label">🔍 नाम / वाहन नंबर</label>
                 <input type="text" placeholder="ग्राहक या वाहन..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="field-input filter-input" />
                 {searchTerm && <button className="filter-chip-clear" onClick={() => setSearchTerm("")}>✕ Clear</button>}
               </div>
 
-              {/* 4. Service Type */}
-              <div className="filter-field">
+              {/* 3. Service Type */}
+              <div className="filter-field filter-field-full">
                 <label className="filter-label">🔧 सेवा प्रकार</label>
                 <select value={bookingService} onChange={e => setBookingService(e.target.value)} className="field-input filter-input">
                   <option value="">सभी सेवाएं</option>
@@ -446,12 +473,12 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
                 {bookingService && <button className="filter-chip-clear" onClick={() => setBookingService("")}>✕ Clear</button>}
               </div>
 
-              {/* 5. Sort by appointment date */}
+              {/* 4. Sort */}
               <div className="filter-field filter-field-full">
-                <label className="filter-label">↕️ Appointment क्रम</label>
+                <label className="filter-label">↕️ क्रम</label>
                 <div className="sort-btn-group">
-                  <button className={`sort-btn ${bookingSort === "asc" ? "active" : ""}`} onClick={() => setBookingSort("asc")}>📅 पहले → बाद</button>
-                  <button className={`sort-btn ${bookingSort === "desc" ? "active" : ""}`} onClick={() => setBookingSort("desc")}>📅 बाद → पहले</button>
+                  <button className={`sort-btn ${bookingSort === "desc" ? "active" : ""}`} onClick={() => setBookingSort("desc")}>🆕 नया पहले</button>
+                  <button className={`sort-btn ${bookingSort === "asc" ? "active" : ""}`} onClick={() => setBookingSort("asc")}>📅 पुराना पहले</button>
                 </div>
               </div>
             </div>
@@ -560,19 +587,24 @@ const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
                 const status = getStatusBadge(entry);
                 return (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <span style={{
-                        fontSize: 12, fontWeight: 700, padding: "4px 12px",
-                        borderRadius: 20, color: status.color, background: status.bg,
-                      }}>
-                        {status.label}
-                      </span>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--tata-blue-light)" }}>
-                          📅 {entry.preferredDate || entry["Preferred Date"] || "—"}
+                    {/* Appointment date+time box */}
+                    <div style={{
+                      display: "flex", gap: 0, marginBottom: 12,
+                      background: "linear-gradient(135deg, rgba(0,93,170,0.22), rgba(26,143,227,0.12))",
+                      border: "1px solid rgba(26,143,227,0.3)", borderRadius: "var(--radius-sm)",
+                      overflow: "hidden",
+                    }}>
+                      <div style={{ flex: 1, padding: "10px 14px" }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>📅 Appointment तारीख</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginTop: 3 }}>
+                          {formatDisplayDate(entry.preferredDate || entry["Preferred Date"]) || "—"}
                         </div>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          ⏰ {entry.preferredTime || entry["Preferred Time"] || "—"}
+                      </div>
+                      <div style={{ width: 1, background: "rgba(26,143,227,0.25)", margin: "8px 0" }} />
+                      <div style={{ flex: 1, padding: "10px 14px" }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>⏰ Appointment समय</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginTop: 3 }}>
+                          {formatDisplayTime(entry.preferredTime || entry["Preferred Time"]) || "—"}
                         </div>
                       </div>
                     </div>

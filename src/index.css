@@ -812,6 +812,152 @@ body {
   box-shadow: var(--shadow-orange);
 }
 
+/* ===== Date Group Header ===== */
+.date-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.date-today {
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.18), rgba(255, 179, 0, 0.08));
+  border: 1px solid rgba(255, 179, 0, 0.3);
+  color: var(--warning);
+}
+
+.date-future {
+  background: linear-gradient(135deg, rgba(26, 143, 227, 0.15), rgba(26, 143, 227, 0.06));
+  border: 1px solid rgba(26, 143, 227, 0.25);
+  color: var(--tata-blue-light);
+}
+
+.date-past {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.date-group-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ===== Booking Card States ===== */
+.booking-arrived {
+  border-left-color: var(--success) !important;
+  opacity: 0.85;
+}
+
+.booking-noshow {
+  border-left-color: var(--danger) !important;
+}
+
+/* ===== Status Pills ===== */
+.status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.status-arrived {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(0, 204, 122, 0.25);
+}
+
+.status-noshow {
+  background: rgba(255, 68, 68, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(255, 68, 68, 0.25);
+}
+
+.status-today {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid rgba(255, 194, 0, 0.25);
+}
+
+.status-upcoming {
+  background: var(--accent-light);
+  color: var(--tata-blue-light);
+  border: 1px solid rgba(26, 143, 227, 0.2);
+}
+
+/* ===== Follow Up Button ===== */
+.btn-noshow {
+  background: linear-gradient(135deg, #CC3300 0%, #AA2200 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(204, 51, 0, 0.3);
+}
+
+.btn-noshow:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(204, 51, 0, 0.4);
+}
+
+/* ===== Appointment Date-Time Box ===== */
+.apt-datetime-box {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(135deg, rgba(0, 93, 170, 0.25), rgba(26, 143, 227, 0.15));
+  border: 1px solid rgba(26, 143, 227, 0.35);
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.apt-datetime-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.apt-datetime-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.apt-datetime-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.apt-datetime-divider {
+  width: 1px;
+  background: rgba(26, 143, 227, 0.3);
+  margin: 8px 0;
+}
+
+/* ===== Booking Detail Grid ===== */
+.booking-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin: 12px 0;
+}
+
+.booking-wa-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* ===== Mobile Bottom Navigation ===== */
 .bottom-nav { display: none; }
 

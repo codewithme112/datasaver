@@ -73,9 +73,10 @@ const App = () => {
 
         <ul className={`navbar-links ${menuOpen ? "open" : ""}`}>
           <li><NavLink to="/" end onClick={closeMenu}>Dashboard</NavLink></li>
-          <li><NavLink to="/lead" onClick={closeMenu}>Lead Form</NavLink></li>
-          <li><NavLink to="/work" onClick={closeMenu}>Work Form</NavLink></li>
-          <li><NavLink to="/booking" onClick={closeMenu}>Booking</NavLink></li>
+          <li><NavLink to="/lead" onClick={closeMenu}>Lead</NavLink></li>
+          <li><NavLink to="/work" onClick={closeMenu}>Work</NavLink></li>
+          <li><NavLink to="/booking" onClick={closeMenu}>New Booking</NavLink></li>
+          <li><NavLink to="/bookings" onClick={closeMenu}>Upcoming</NavLink></li>
           <li><NavLink to="/entries" onClick={closeMenu}>Entries</NavLink></li>
         </ul>
 
@@ -126,7 +127,7 @@ const App = () => {
           />
           <Route
             path="/bookings"
-            element={<UpcomingBookings allBookings={allBookings} />}
+            element={<UpcomingBookings allBookings={allBookings} allWorks={allWorks} />}
           />
           <Route
             path="/entries"
@@ -169,12 +170,12 @@ const App = () => {
           <span className="bottom-nav-label">Work</span>
         </NavLink>
         <NavLink
-          to="/booking"
+          to="/bookings"
           className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
           onClick={closeMenu}
         >
           <span className="bottom-nav-icon">📅</span>
-          <span className="bottom-nav-label">Booking</span>
+          <span className="bottom-nav-label">Upcoming</span>
         </NavLink>
         <NavLink
           to="/entries"
