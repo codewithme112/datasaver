@@ -16,6 +16,7 @@ const WorkDetailsForm = ({ allWorks, fetchWorks }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
   const [todayEntries, setTodayEntries] = useState(0);
+  const isSubmitting = useRef(false);
 
   // ── Recalculate stats when allWorks updates ──
   useEffect(() => {

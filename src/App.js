@@ -61,29 +61,22 @@ const App = () => {
 
   return (
     <Router>
-      {/* ===== Navbar ===== */}
+      {/* ===== Top Navbar ===== */}
       <nav className="navbar">
         <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          <div className="navbar-brand-icon">🔧</div>
-          <span>AutoTech</span>
+          <div className="navbar-brand-icon">🚛</div>
+          <div className="navbar-brand-text">
+            <span className="navbar-brand-name">SAI AUTOTECH</span>
+            <span className="navbar-brand-sub">TATA Authorised Service Station</span>
+          </div>
         </NavLink>
 
         <ul className={`navbar-links ${menuOpen ? "open" : ""}`}>
-          <li>
-            <NavLink to="/" end onClick={closeMenu}>Dashboard</NavLink>
-          </li>
-          <li>
-            <NavLink to="/lead" onClick={closeMenu}>Lead Form</NavLink>
-          </li>
-          <li>
-            <NavLink to="/work" onClick={closeMenu}>Work Form</NavLink>
-          </li>
-          <li>
-            <NavLink to="/booking" onClick={closeMenu}>📅 Booking</NavLink>
-          </li>
-          <li>
-            <NavLink to="/entries" onClick={closeMenu}>Entries</NavLink>
-          </li>
+          <li><NavLink to="/" end onClick={closeMenu}>Dashboard</NavLink></li>
+          <li><NavLink to="/lead" onClick={closeMenu}>Lead Form</NavLink></li>
+          <li><NavLink to="/work" onClick={closeMenu}>Work Form</NavLink></li>
+          <li><NavLink to="/booking" onClick={closeMenu}>Booking</NavLink></li>
+          <li><NavLink to="/entries" onClick={closeMenu}>Entries</NavLink></li>
         </ul>
 
         <button
@@ -97,7 +90,7 @@ const App = () => {
         </button>
       </nav>
 
-      {/* ===== Routes ===== */}
+      {/* ===== Page Content ===== */}
       <div className="page-content">
         <Routes>
           <Route
@@ -138,13 +131,62 @@ const App = () => {
           <Route
             path="/entries"
             element={
-              <TodayEntries allLeads={allLeads} allWorks={allWorks} allBookings={allBookings} />
+              <TodayEntries
+                allLeads={allLeads}
+                allWorks={allWorks}
+                allBookings={allBookings}
+              />
             }
           />
         </Routes>
       </div>
 
-      {/* ===== Toast Container ===== */}
+      {/* ===== Mobile Bottom Navigation ===== */}
+      <nav className="bottom-nav">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+          onClick={closeMenu}
+        >
+          <span className="bottom-nav-icon">📊</span>
+          <span className="bottom-nav-label">Dashboard</span>
+        </NavLink>
+        <NavLink
+          to="/lead"
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+          onClick={closeMenu}
+        >
+          <span className="bottom-nav-icon">📝</span>
+          <span className="bottom-nav-label">Lead</span>
+        </NavLink>
+        <NavLink
+          to="/work"
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+          onClick={closeMenu}
+        >
+          <span className="bottom-nav-icon">🔧</span>
+          <span className="bottom-nav-label">Work</span>
+        </NavLink>
+        <NavLink
+          to="/booking"
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+          onClick={closeMenu}
+        >
+          <span className="bottom-nav-icon">📅</span>
+          <span className="bottom-nav-label">Booking</span>
+        </NavLink>
+        <NavLink
+          to="/entries"
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+          onClick={closeMenu}
+        >
+          <span className="bottom-nav-icon">🗂️</span>
+          <span className="bottom-nav-label">Entries</span>
+        </NavLink>
+      </nav>
+
+      {/* ===== Toast ===== */}
       <ToastContainer
         position="top-right"
         autoClose={3000}

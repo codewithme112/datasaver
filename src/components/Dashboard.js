@@ -57,16 +57,16 @@ const CustomTooltip = ({ active, payload, label }) => {
     return (
       <div
         style={{
-          background: "#1e293b",
-          border: "1px solid #334155",
-          borderRadius: "8px",
-          padding: "10px 14px",
+          background: "#183566",
+          border: "1px solid #2A5090",
+          borderRadius: "10px",
+          padding: "10px 16px",
           fontSize: "13px",
-          color: "#f1f5f9",
+          color: "#fff",
         }}
       >
-        <p style={{ marginBottom: 4, color: "#94a3b8" }}>{label}</p>
-        <p style={{ fontWeight: 700, color: "#22c55e" }}>
+        <p style={{ marginBottom: 4, color: "#85B4D4" }}>{label}</p>
+        <p style={{ fontWeight: 800, color: "#00CC7A" }}>
           ₹{payload[0].value.toLocaleString("en-IN")}
         </p>
       </div>
@@ -217,23 +217,23 @@ const Dashboard = ({ allLeads, allWorks, allBookings = [] }) => {
         <p className="chart-title">📊 Revenue Trend (Last 6 Months)</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#1A3D6A" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fill: "#94a3b8", fontSize: 13 }}
+              tick={{ fill: "#85B4D4", fontSize: 13 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              tick={{ fill: "#85B4D4", fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `₹${v >= 1000 ? v / 1000 + "k" : v}`}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(59,130,246,0.08)" }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,102,0,0.07)" }} />
             <Bar
               dataKey="revenue"
-              fill="#3b82f6"
+              fill="#FF6600"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
             />
