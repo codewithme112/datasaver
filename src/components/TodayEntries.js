@@ -1,36 +1,35 @@
 import React, { useState, useEffect } from "react";
 
-const TodayEntries = ({ allLeads, allWorks, onBack }) => {
+const TodayEntries = ({ allLeads, allWorks, allBookings }) => {
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewType, setViewType] = useState("lead"); // Default: Leads
+  const [viewType, setViewType] = useState("lead");
 
-  // ✅ Set default selected date (today)
   useEffect(() => {
     const todayISO = new Date().toISOString().split("T")[0];
     setSelectedDate(todayISO);
   }, []);
 
-  // 🔹 Safe parse (ISO + DD-MM-YYYY support)
+  // ── Safe date parser (ISO + "DD-MM-YYYY HH:mm:ss") ──
   const parseSheetDate = (ts) => {
     if (!ts) return null;
     try {
       if (ts.includes("T") && ts.includes("Z")) {
-        const dateObj = new Date(ts);
-        return isNaN(dateObj.getTime()) ? null : dateObj;
+        const d = new Date(ts);
+        return isNaN(d.getTime()) ? null : d;
       }
       const [datePart, timePart] = ts.split(" ");
       const [dd, mm, yyyy] = datePart.split("-");
       const [hh = 0, min = 0, ss = 0] = (timePart || "0:0:0").split(":");
-      const dateObj = new Date(yyyy, mm - 1, dd, hh, min, ss);
-      return isNaN(dateObj.getTime()) ? null : dateObj;
+      const d = new Date(yyyy, mm - 1, dd, hh, min, ss);
+      return isNaN(d.getTime()) ? null : d;
     } catch {
       return null;
     }
   };
 
-  const formatTimestamp = (timestamp) => {
-    const date = parseSheetDate(timestamp);
+  const formatTimestamp = (ts) => {
+    const date = parseSheetDate(ts);
     if (!date) return "";
     return date.toLocaleString("hi-IN", {
       hour: "2-digit",
@@ -42,52 +41,75 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
     });
   };
 
-  // ✅ WhatsApp Function (Leads Only)
-  const sendWhatsApp = (number, vehicleNumber) => {
-    if (!number) return;
-
-    const phone = String(number).trim();
-    let finalNumber = phone;
-    if (phone.startsWith("0")) {
-      finalNumber = "+91" + phone.substring(1);
-    } else if (!phone.startsWith("+91")) {
-      finalNumber = "+91" + phone;
-    }
-
-    const message = `आपके वाहन ${vehicleNumber} के लिए Sai Autotech - TATA Authorised Service Station | Commercial Vehicles में फ्री जनरल चेकअप उपलब्ध है।\n\nUREA भरवाने पर पॉइंट्स मिलेंगे और निप्पल ग्रीसिंग ₹150 में कराई जा सकती है।\n\nआसान लोकेशन के लिए देखें: https://maps.app.goo.gl/Ru4zf19JUpknN2yr5\n\nसमय निकालकर लाभ अवश्य उठाएं।`;
-
-    const url = `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+  const formatDisplayDate = (ts) => {
+    const d = parseSheetDate(ts);
+    if (!d) return String(ts || "—").split("T")[0];
+    return d.toLocaleString("hi-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
-  // ✅ Filtered Entries (Date + Search)
-  const entries = viewType === "lead" ? allLeads : allWorks;
+  const formatDisplayTime = (ts) => {
+    if (!ts) return "—";
+    if (!String(ts).includes("T")) return ts;
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return ts;
+    return d.toLocaleString("hi-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // ── WhatsApp ──
+  const sendWhatsApp = (number, vehicleNumber) => {
+    if (!number) return;
+    const phone = String(number).trim();
+    let finalNumber = phone.startsWith("0")
+      ? "+91" + phone.substring(1)
+      : phone.startsWith("+91")
+      ? phone
+      : "+91" + phone;
+
+    const message =
+      `आपके वाहन ${vehicleNumber} के लिए Sai Autotech - TATA Authorised Service Station | Commercial Vehicles में फ्री जनरल चेकअप उपलब्ध है।\n\n` +
+      `UREA भरवाने पर पॉइंट्स मिलेंगे और निप्पल ग्रीसिंग ₹150 में कराई जा सकती है।\n\n` +
+      `आसान लोकेशन के लिए देखें: https://maps.app.goo.gl/Ru4zf19JUpknN2yr5\n\n` +
+      `समय निकालकर लाभ अवश्य उठाएं।`;
+
+    window.open(
+      `https://wa.me/${finalNumber}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+  };
+
+  // ── Filter ──
+  const entries = viewType === "lead" ? allLeads : viewType === "work" ? allWorks : allBookings;
 
   const filteredEntries = entries.filter((entry) => {
-    const entryDateObj = parseSheetDate(entry.timestamp || entry.Timestamp);
-    if (!entryDateObj) return false;
+    const dateObj = parseSheetDate(entry.timestamp || entry.Timestamp);
+    if (!dateObj) return false;
+    const entryISO = dateObj.toISOString().split("T")[0];
 
-    const entryDateISO = entryDateObj.toISOString().split("T")[0];
-
-    const matchesDate = searchTerm
-      ? true
-      : selectedDate
-      ? entryDateISO === selectedDate
-      : true;
+    const matchesDate = searchTerm ? true : selectedDate ? entryISO === selectedDate : true;
 
     const search = searchTerm.toLowerCase();
+    let matchesSearch = false;
+    if (viewType === "lead") {
+      matchesSearch = String(entry.name || "").toLowerCase().includes(search);
+    } else if (viewType === "work") {
+      matchesSearch = String(entry.vehicleNumber || entry["Vehicle Number"] || "").toLowerCase().includes(search);
+    } else if (viewType === "booking") {
+      matchesSearch = String(entry.customerName || entry["Customer Name"] || "").toLowerCase().includes(search) || 
+                      String(entry.vehicleNumber || entry["Vehicle Number"] || "").toLowerCase().includes(search);
+    }
 
-    const matchesName =
-      viewType === "lead"
-        ? String(entry.name || "").toLowerCase().includes(search)
-        : String(entry.vehicleNumber || entry["Vehicle Number"] || "")
-            .toLowerCase()
-            .includes(search);
-
-    return matchesDate && matchesName;
+    return matchesDate && matchesSearch;
   });
 
-  // ✅ Revenue Calculation (Work Only)
+  // ── Revenue ──
   const todayRevenue =
     viewType === "work"
       ? filteredEntries.reduce(
@@ -96,16 +118,13 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
         )
       : 0;
 
+  const now = new Date();
   const monthRevenue =
     viewType === "work"
       ? entries.reduce((sum, e) => {
-          const dateObj = parseSheetDate(e.timestamp || e.Timestamp);
-          if (!dateObj) return sum;
-          const now = new Date();
-          if (
-            dateObj.getMonth() === now.getMonth() &&
-            dateObj.getFullYear() === now.getFullYear()
-          ) {
+          const d = parseSheetDate(e.timestamp || e.Timestamp);
+          if (!d) return sum;
+          if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
             return sum + (parseFloat(e.totalBill || e["Total Bill"]) || 0);
           }
           return sum;
@@ -113,134 +132,199 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
       : 0;
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.heading}>एंट्रीज</h2>
+    <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      {/* Page Title */}
+      <div className="section-header">
+        <h1 className="section-title">📋 Entries</h1>
+        <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+          {filteredEntries.length} records
+        </span>
+      </div>
 
-      {onBack && (
-        <button onClick={onBack} style={styles.backButton}>
-          ← वापस फॉर्म पर जाएं
+      {/* Toggle Tabs */}
+      <div className="toggle-tabs">
+        <button
+          className={`toggle-tab ${viewType === "lead" ? "active" : ""}`}
+          onClick={() => setViewType("lead")}
+        >
+          📝 Leads
         </button>
-      )}
-
-      {/* Toggle Lead/Work */}
-      <div style={styles.toggleContainer}>
-        <label>
-          <input
-            type="radio"
-            name="viewType"
-            value="lead"
-            checked={viewType === "lead"}
-            onChange={(e) => setViewType(e.target.value)}
-          />
-          Leads
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="viewType"
-            value="work"
-            checked={viewType === "work"}
-            onChange={(e) => setViewType(e.target.value)}
-          />
-          Work
-        </label>
+        <button
+          className={`toggle-tab ${viewType === "work" ? "active" : ""}`}
+          onClick={() => setViewType("work")}
+        >
+          🔧 Work
+        </button>
+        <button
+          className={`toggle-tab ${viewType === "booking" ? "active" : ""}`}
+          onClick={() => setViewType("booking")}
+        >
+          📅 Bookings
+        </button>
       </div>
 
       {/* Filters */}
-      <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
+      <div className="filter-row">
         <input
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          style={{ padding: "8px", flex: 1 }}
+          className="field-input"
         />
         <input
           type="text"
-          placeholder={viewType === "lead" ? "नाम से खोजें" : "वाहन नंबर से खोजें"}
+          placeholder={viewType === "lead" ? "नाम से खोजें..." : viewType === "work" ? "वाहन नंबर से खोजें..." : "नाम या वाहन नंबर..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: "8px", flex: 1 }}
+          className="field-input"
         />
       </div>
 
+      {/* Entries */}
       {filteredEntries.length === 0 ? (
-        <div style={styles.empty}>कोई डेटा नहीं मिला</div>
+        <div className="empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <p>कोई डेटा नहीं मिला</p>
+        </div>
       ) : (
-        <div style={styles.entriesList}>
+        <div className="entries-list">
           {filteredEntries.map((entry, index) => (
-            <div key={index} style={styles.entryCard}>
-              <div style={styles.entryHeader}>
-                <span style={styles.entryNumber}>#{index + 1}</span>
-                <span style={styles.entryTime}>
+            <div key={index} className="entry-card">
+              <div className="entry-header">
+                <span className="entry-badge">#{index + 1}</span>
+                <span className="entry-time">
                   {formatTimestamp(entry.timestamp || entry.Timestamp)}
                 </span>
               </div>
 
-              {viewType === "lead" ? (
+              {viewType === "lead" && (
                 <>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>नाम:</span>
-                    <span style={styles.value}>{entry.name}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">नाम</span>
+                    <span className="detail-value">{entry.name || "—"}</span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>वाहन नंबर:</span>
-                    <span style={styles.value}>{entry.vehicleNumber}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">वाहन नंबर</span>
+                    <span className="detail-value">{entry.vehicleNumber || "—"}</span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>टोकन नंबर:</span>
-                    <span style={styles.value}>{entry.tokenNumber}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">टोकन नंबर</span>
+                    <span className="detail-value">{entry.tokenNumber || "—"}</span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>संपर्क नंबर:</span>
-                    <span style={styles.value}>{entry.contactNumber}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">संपर्क नंबर</span>
+                    <span className="detail-value">{entry.contactNumber || "—"}</span>
                   </div>
-
-                  {/* ✅ WhatsApp Button for Leads */}
+                  <div className="detail-row">
+                    <span className="detail-label">कंपनी</span>
+                    <span className="detail-value">{entry.companyName || "—"}</span>
+                  </div>
                   <button
-                    style={styles.whatsappButton}
-                    onClick={() => sendWhatsApp(entry.contactNumber, entry.vehicleNumber)}
+                    className="btn btn-success btn-sm"
+                    style={{ marginTop: 14, width: "100%" }}
+                    onClick={() =>
+                      sendWhatsApp(entry.contactNumber, entry.vehicleNumber)
+                    }
                   >
-                    WhatsApp भेजें
+                    💬 WhatsApp भेजें
                   </button>
                 </>
-              ) : (
+              )}
+              
+              {viewType === "work" && (
                 <>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>वाहन नंबर:</span>
-                    <span style={styles.value}>
-                      {entry.vehicleNumber || entry["Vehicle Number"]}
+                  <div className="detail-row">
+                    <span className="detail-label">वाहन नंबर</span>
+                    <span className="detail-value">
+                      {entry.vehicleNumber || entry["Vehicle Number"] || "—"}
                     </span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>काम:</span>
-                    <span style={styles.value}>
-                      {entry.workDone || entry["Work Done"]}
+                  <div className="detail-row">
+                    <span className="detail-label">किया गया काम</span>
+                    <span className="detail-value">
+                      {entry.workDone || entry["Work Done"] || "—"}
                     </span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>Parts Cost:</span>
-                    <span style={styles.value}>
-                      ₹{entry.partsCost || entry["Parts Cost"]}
+                  <div className="detail-row">
+                    <span className="detail-label">Parts Cost</span>
+                    <span className="detail-value">
+                      ₹{entry.partsCost || entry["Parts Cost"] || "0"}
                     </span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>Labour Cost:</span>
-                    <span style={styles.value}>
-                      ₹{entry.labourCost || entry["Labour Cost"]}
+                  <div className="detail-row">
+                    <span className="detail-label">Labour Cost</span>
+                    <span className="detail-value">
+                      ₹{entry.labourCost || entry["Labour Cost"] || "0"}
                     </span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>कुल बिल:</span>
-                    <span style={styles.value}>
-                      ₹{entry.totalBill || entry["Total Bill"]}
+                  <div
+                    className="detail-row"
+                    style={{
+                      marginTop: 8,
+                      paddingTop: 8,
+                      borderTop: "1px solid var(--border)",
+                    }}
+                  >
+                    <span
+                      className="detail-label"
+                      style={{ color: "var(--success)", fontWeight: 700 }}
+                    >
+                      कुल बिल
+                    </span>
+                    <span
+                      className="detail-value"
+                      style={{ color: "var(--success)", fontSize: 16 }}
+                    >
+                      ₹{entry.totalBill || entry["Total Bill"] || "0"}
                     </span>
                   </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.label}>Remarks:</span>
-                    <span style={styles.value}>
-                      {entry.remarks || entry["Remarks"]}
-                    </span>
+                  {(entry.remarks || entry["Remarks"]) && (
+                    <div className="detail-row">
+                      <span className="detail-label">Remarks</span>
+                      <span className="detail-value">
+                        {entry.remarks || entry["Remarks"]}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {viewType === "booking" && (
+                <>
+                  <div className="detail-row">
+                    <span className="detail-label">ग्राहक</span>
+                    <span className="detail-value">{entry.customerName || entry["Customer Name"] || "—"}</span>
                   </div>
+                  <div className="detail-row">
+                    <span className="detail-label">कंपनी</span>
+                    <span className="detail-value">{entry.companyName || entry["Company Name"] || "—"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">वाहन नंबर</span>
+                    <span className="detail-value">{entry.vehicleNumber || entry["Vehicle Number"] || "—"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">संपर्क नंबर</span>
+                    <span className="detail-value">{entry.contactNumber || entry["Contact Number"] || "—"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">सेवा</span>
+                    <span className="detail-value">{entry.serviceType || entry["Service Type"] || "—"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">पसंदीदा तारीख</span>
+                    <span className="detail-value" style={{ color: "var(--accent)" }}>{formatDisplayDate(entry.preferredDate || entry["Preferred Date"])}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">पसंदीदा समय</span>
+                    <span className="detail-value">{formatDisplayTime(entry.preferredTime || entry["Preferred Time"])}</span>
+                  </div>
+                  {(entry.notes || entry["Notes"]) && (
+                    <div className="detail-row">
+                      <span className="detail-label">नोट्स</span>
+                      <span className="detail-value">{entry.notes || entry["Notes"]}</span>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -248,85 +332,25 @@ const TodayEntries = ({ allLeads, allWorks, onBack }) => {
         </div>
       )}
 
-      {/* Revenue Summary (Work Only) */}
-      {viewType === "work" && (
-        <div style={styles.revenueBox}>
-          <div>आज का कुल Revenue: ₹{todayRevenue}</div>
-          <div>इस महीने का कुल Revenue: ₹{monthRevenue}</div>
+      {/* Revenue Summary */}
+      {viewType === "work" && filteredEntries.length > 0 && (
+        <div className="revenue-box">
+          <div className="revenue-item">
+            <div className="revenue-amount">
+              ₹{todayRevenue.toLocaleString("en-IN")}
+            </div>
+            <div className="revenue-label">आज का Revenue</div>
+          </div>
+          <div className="revenue-item">
+            <div className="revenue-amount">
+              ₹{monthRevenue.toLocaleString("en-IN")}
+            </div>
+            <div className="revenue-label">इस महीने का Revenue</div>
+          </div>
         </div>
       )}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: "20px",
-    maxWidth: "700px",
-    margin: "20px auto",
-    fontFamily: "system-ui, sans-serif",
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-  },
-  heading: { textAlign: "center", marginBottom: "24px" },
-  backButton: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "20px",
-    backgroundColor: "#6c757d",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-  },
-  toggleContainer: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "20px",
-    marginBottom: "20px",
-    fontSize: "16px",
-    fontWeight: "600",
-  },
-  entriesList: { display: "flex", flexDirection: "column", gap: "15px" },
-  entryCard: {
-    backgroundColor: "#f8f9fa",
-    padding: "15px",
-    borderRadius: "8px",
-    border: "1px solid #dee2e6",
-  },
-  entryHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    borderBottom: "1px solid #dee2e6",
-    marginBottom: "10px",
-    paddingBottom: "5px",
-  },
-  entryNumber: { fontWeight: "bold", color: "#007bff" },
-  entryTime: { fontSize: "14px", color: "#6c757d" },
-  detailRow: { display: "flex", justifyContent: "space-between" },
-  label: { fontWeight: "600" },
-  value: { color: "#212529" },
-  whatsappButton: {
-    marginTop: "12px",
-    padding: "10px 15px",
-    backgroundColor: "#25D366",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "600",
-  },
-  empty: { textAlign: "center", color: "#6c757d", padding: "20px" },
-  revenueBox: {
-    marginTop: "20px",
-    padding: "15px",
-    backgroundColor: "#e9f7ef",
-    borderRadius: "8px",
-    fontWeight: "600",
-    color: "#155724",
-  },
 };
 
 export default TodayEntries;

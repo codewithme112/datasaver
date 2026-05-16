@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  NavLink,
+} from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import CustomerLeadForm from "./components/CustomerLeadForm";
 import WorkDetailsForm from "./components/WorkDetailsForm";
 import TodayEntries from "./components/TodayEntries";
-
-const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwjcrTiR1VW3beteqx-b7VcURACWHpfsqyerPdvZ2yzIXq1_w7R1n0DRAa3qYupXx9S/exec";
+import Dashboard from "./components/Dashboard";
+import AdvanceBookingForm from "./components/AdvanceBookingForm";
+import UpcomingBookings from "./components/UpcomingBookings";
+import { GOOGLE_SCRIPT_URL } from "./config";
 
 const App = () => {
-  // ✅ Centralized States
   const [allLeads, setAllLeads] = useState([]);
   const [allWorks, setAllWorks] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // ✅ Fetch Leads
   const fetchLeads = async () => {
     try {
       const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=lead`);
@@ -23,7 +31,6 @@ const App = () => {
     }
   };
 
-  // ✅ Fetch Works
   const fetchWorks = async () => {
     try {
       const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=work`);
@@ -34,51 +41,119 @@ const App = () => {
     }
   };
 
-  // ✅ Fetch once on app load
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=booking`);
+      const data = await res.json();
+      setAllBookings(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    }
+  };
+
   useEffect(() => {
     fetchLeads();
     fetchWorks();
+    fetchBookings();
   }, []);
+
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <Router>
-      {/* Navbar */}
-      <nav style={{ padding: "10px", background: "#f5f5f5", marginBottom: "20px" }}>
-        <Link to="/" style={{ marginRight: "15px" }}>Customer Lead Form</Link>
-        <Link to="/work" style={{ marginLeft: "25px" }}>Work Form</Link>
-        <Link to="/today"style={{ marginLeft: "75px" }}>Entries</Link>
+      {/* ===== Navbar ===== */}
+      <nav className="navbar">
+        <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
+          <div className="navbar-brand-icon">🔧</div>
+          <span>AutoTech</span>
+        </NavLink>
+
+        <ul className={`navbar-links ${menuOpen ? "open" : ""}`}>
+          <li>
+            <NavLink to="/" end onClick={closeMenu}>Dashboard</NavLink>
+          </li>
+          <li>
+            <NavLink to="/lead" onClick={closeMenu}>Lead Form</NavLink>
+          </li>
+          <li>
+            <NavLink to="/work" onClick={closeMenu}>Work Form</NavLink>
+          </li>
+          <li>
+            <NavLink to="/booking" onClick={closeMenu}>📅 Booking</NavLink>
+          </li>
+          <li>
+            <NavLink to="/entries" onClick={closeMenu}>Entries</NavLink>
+          </li>
+        </ul>
+
+        <button
+          className="hamburger"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </nav>
 
-      {/* Routes */}
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <CustomerLeadForm
-              allLeads={allLeads}
-              fetchLeads={fetchLeads}
-            />
-          }
-        />
-        <Route
-          path="/work"
-          element={
-            <WorkDetailsForm
-              allWorks={allWorks}
-              fetchWorks={fetchWorks}
-            />
-          }
-        />
-        <Route
-          path="/today"
-          element={
-            <TodayEntries
-              allLeads={allLeads}
-              allWorks={allWorks}
-            />
-          }
-        />
-      </Routes>
+      {/* ===== Routes ===== */}
+      <div className="page-content">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Dashboard
+                allLeads={allLeads}
+                allWorks={allWorks}
+                allBookings={allBookings}
+              />
+            }
+          />
+          <Route
+            path="/lead"
+            element={
+              <CustomerLeadForm allLeads={allLeads} fetchLeads={fetchLeads} />
+            }
+          />
+          <Route
+            path="/work"
+            element={
+              <WorkDetailsForm allWorks={allWorks} fetchWorks={fetchWorks} />
+            }
+          />
+          <Route
+            path="/booking"
+            element={
+              <AdvanceBookingForm
+                allBookings={allBookings}
+                fetchBookings={fetchBookings}
+              />
+            }
+          />
+          <Route
+            path="/bookings"
+            element={<UpcomingBookings allBookings={allBookings} />}
+          />
+          <Route
+            path="/entries"
+            element={
+              <TodayEntries allLeads={allLeads} allWorks={allWorks} allBookings={allBookings} />
+            }
+          />
+        </Routes>
+      </div>
+
+      {/* ===== Toast Container ===== */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        theme="dark"
+        style={{ zIndex: 9999 }}
+      />
     </Router>
   );
 };

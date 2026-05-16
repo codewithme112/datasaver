@@ -1,197 +1,164 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { toast } from "react-toastify";
+import { GOOGLE_SCRIPT_URL } from "../config";
 
-const WorkDetailsForm = ({ allWorks, fetchWorks, onBack }) => {
-  const [formData, setFormData] = useState({
+const WorkDetailsForm = ({ allWorks, fetchWorks }) => {
+  const initialForm = {
     vehicleNumber: "",
     workDone: "",
     partsCost: "",
     labourCost: "",
     totalBill: "",
     remarks: "",
-  });
+  };
 
+  const [formData, setFormData] = useState(initialForm);
+  const [isLoading, setIsLoading] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
   const [todayEntries, setTodayEntries] = useState(0);
 
-  // 🔹 Whenever allWorks update → recalc counts
+  // ── Recalculate stats when allWorks updates ──
   useEffect(() => {
     if (!Array.isArray(allWorks)) return;
-
     setTotalEntries(allWorks.length);
-
-    const today = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
-    const todayData = allWorks.filter((entry) => {
-      const ts = entry.timestamp || entry.Timestamp;
+    const today = new Date().toISOString().split("T")[0];
+    const count = allWorks.filter((e) => {
+      const ts = e.timestamp || e.Timestamp;
       if (!ts) return false;
-      const entryDate = new Date(ts).toISOString().split("T")[0];
-      return entryDate === today;
-    });
-
-    setTodayEntries(todayData.length);
+      return new Date(ts).toISOString().split("T")[0] === today;
+    }).length;
+    setTodayEntries(count);
   }, [allWorks]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Only digits for cost fields
     if (
-      (name === "partsCost" || name === "labourCost" || name === "totalBill") &&
+      ["partsCost", "labourCost", "totalBill"].includes(name) &&
       !/^\d*$/.test(value)
-    ) {
+    )
       return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      // Auto-calculate totalBill when parts/labour changes
+      if (name === "partsCost" || name === "labourCost") {
+        const parts = parseFloat(name === "partsCost" ? value : prev.partsCost) || 0;
+        const labour = parseFloat(name === "labourCost" ? value : prev.labourCost) || 0;
+        updated.totalBill = (parts + labour).toString();
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting.current) return;
 
-    await fetch(
-      "https://script.google.com/macros/s/AKfycbwjcrTiR1VW3beteqx-b7VcURACWHpfsqyerPdvZ2yzIXq1_w7R1n0DRAa3qYupXx9S/exec",
-      {
+    if (!formData.vehicleNumber.trim()) {
+      toast.error("वाहन नंबर आवश्यक है।");
+      return;
+    }
+    if (!formData.workDone.trim()) {
+      toast.error("किया गया कार्य आवश्यक है।");
+      return;
+    }
+
+    isSubmitting.current = true;
+    setIsLoading(true);
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         mode: "no-cors",
-        body: JSON.stringify({
-          type: "work",
-          ...formData,
-        }),
-      }
-    );
+        body: JSON.stringify({ type: "work", ...formData }),
+      });
 
-    alert("वर्क डिटेल्स सफलतापूर्वक सेव हो गईं ✅");
-
-    setFormData({
-      vehicleNumber: "",
-      workDone: "",
-      partsCost: "",
-      labourCost: "",
-      totalBill: "",
-      remarks: "",
-    });
-
-    // नया entry update करने के लिए सिर्फ props से मिली function call करेंगे
-    fetchWorks();
+      toast.success("✅ वर्क डिटेल्स सफलतापूर्वक सेव हो गईं!");
+      setFormData(initialForm);
+      fetchWorks();
+    } catch (err) {
+      toast.error("❌ Submit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+      isSubmitting.current = false;
+    }
   };
 
   const hindiLabels = {
     vehicleNumber: "वाहन नंबर",
     workDone: "किया गया कार्य",
-    partsCost: "पार्ट्स लागत",
-    labourCost: "लेबर लागत",
-    totalBill: "कुल बिल",
+    partsCost: "पार्ट्स लागत (₹)",
+    labourCost: "लेबर लागत (₹)",
+    totalBill: "कुल बिल (₹)",
     remarks: "टिप्पणी",
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.heading}>वर्क डिटेल्स फॉर्म</h2>
-
-      {/* कुल और आज की एंट्रीज */}
-      <div style={styles.statsBox}>
-        <p>
-          कुल एंट्रीज़: <strong>{totalEntries}</strong>
-        </p>
-        <p>
-          आज की एंट्रीज़: <strong>{todayEntries}</strong>
-        </p>
+    <div className="form-container">
+      {/* Stats */}
+      <div className="stats-grid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 28 }}>
+        <div className="stat-card">
+          <div className="stat-icon">🔧</div>
+          <div className="stat-number">{totalEntries}</div>
+          <div className="stat-label">कुल एंट्रीज़</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">📅</div>
+          <div className="stat-number">{todayEntries}</div>
+          <div className="stat-label">आज की एंट्रीज़</div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        {Object.entries(formData).map(([key, value]) => (
-          <div key={key} style={styles.fieldGroup}>
-            <label style={styles.label}>{hindiLabels[key]}:</label>
-            <input
-              type="text"
-              name={key}
-              value={value}
-              onChange={handleChange}
-              required={key !== "remarks"}
-              style={styles.input}
-              placeholder={`${hindiLabels[key]} दर्ज करें`}
-            />
-          </div>
-        ))}
-        <button type="submit" style={styles.button}>
-          जमा करें
-        </button>
-      </form>
+      <div className="card">
+        <h2 className="form-title">🔧 वर्क डिटेल्स फॉर्म</h2>
+
+        <form onSubmit={handleSubmit} className="form-grid">
+          {Object.entries(formData).map(([key, value]) => (
+            <div key={key} className="field-group">
+              <label className="field-label">{hindiLabels[key]}</label>
+              <input
+                type="text"
+                name={key}
+                value={value}
+                onChange={handleChange}
+                required={key !== "remarks"}
+                className="field-input"
+                placeholder={`${hindiLabels[key]} दर्ज करें`}
+                disabled={isLoading || key === "totalBill"}
+                style={
+                  key === "totalBill"
+                    ? { opacity: 0.75, cursor: "not-allowed" }
+                    : {}
+                }
+              />
+              {key === "totalBill" && (
+                <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
+                  Auto-calculated from Parts + Labour
+                </span>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isLoading}
+            style={{ marginTop: 8 }}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner" />
+                सबमिट हो रहा है...
+              </>
+            ) : (
+              "जमा करें"
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: "20px",
-    maxWidth: "500px",
-    margin: "20px auto",
-    fontFamily: "system-ui, sans-serif",
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-  },
-  heading: {
-    textAlign: "center",
-    marginBottom: "24px",
-    color: "#333",
-    fontSize: "24px",
-    fontWeight: "600",
-  },
-  statsBox: {
-    background: "#f8f9fa",
-    padding: "12px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  backButton: {
-    width: "100%",
-    padding: "10px",
-    fontSize: "15px",
-    fontWeight: "600",
-    backgroundColor: "#6c757d",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    marginBottom: "20px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    marginBottom: "6px",
-    fontSize: "15px",
-    color: "#555",
-    fontWeight: "bold",
-  },
-  input: {
-    padding: "10px 12px",
-    fontSize: "15px",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    outline: "none",
-    transition: "border-color 0.2s",
-  },
-  button: {
-    padding: "12px",
-    fontSize: "16px",
-    fontWeight: "600",
-    backgroundColor: "#007bff",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    transition: "background-color 0.3s",
-  },
 };
 
 export default WorkDetailsForm;
