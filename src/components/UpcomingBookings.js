@@ -93,14 +93,14 @@ const UpcomingBookings = ({ allBookings, allWorks = [] }) => {
       const ts = w.timestamp || w.Timestamp;
       if (!ts) return;
       const workDate = normalizeDateStr(ts.split(" ")[0]); // date part only
-      const vehicle = (w.vehicleNumber || w["Vehicle Number"] || "").toUpperCase().trim();
+      const vehicle = String(w.vehicleNumber || w["Vehicle Number"] || "").toUpperCase().trim();
       if (vehicle && workDate) set.add(`${vehicle}__${workDate}`);
     });
     return set;
   }, [allWorks]);
 
   const hasArrived = (b) => {
-    const v = (b.vehicleNumber || b["Vehicle Number"] || "").toUpperCase().trim();
+    const v = String(b.vehicleNumber || b["Vehicle Number"] || "").toUpperCase().trim();
     const d = normalizeDateStr(b.preferredDate || b["Preferred Date"] || "");
     return arrivedSet.has(`${v}__${d}`);
   };
